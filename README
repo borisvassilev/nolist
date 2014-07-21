@@ -1,6 +1,11 @@
 nolist : a LaTeX with package listings back end for noweb
 =========================================================
 
+This program reads the noweb pipeline representation from standard input and
+writes a properly typeset LaTeX file to output. It uses the package listings to
+typeset code from the noweb source file. The .tex file can then be compiled
+with latex or pdflatex.
+
 Prerequisites
 -------------
 First, you need a working installation of noweb to extract the program from the
