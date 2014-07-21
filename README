@@ -1,0 +1,63 @@
+nolist : a LaTeX with package listings back end for noweb
+=========================================================
+
+Prerequisites
+-------------
+First, you need a working installation of noweb to extract the program from the
+noweb source file. Noweb is available in some form on most modern Linux
+distributions. The name of the package is usually ``noweb''.
+
+You also need a working installation of SWI-Prolog V7 or later. For Linux, I
+suggest installing it from source (it is really straight-forward). See the
+website, www.swi-prolog.org for details on compiling and installing.
+
+Then, you will need a full LaTeX installation to compile the human-readable
+documentation from the extracted LaTeX file to a pdf.
+
+Makefile
+--------
+Since I don't know how to use autoconf yet, I have provided a manually written
+Makefile. You will have to edit it, to contain the correct paths to the noweb
+front end, markup (usually, /usr/lib/noweb/markup) and the noweb filter
+emptydefn (usually, /usr/lib/noweb/emptydefn). You can see where those files
+have been installed by consulting the nowebfilters manual page:
+
+$ man 7 nowebfilters
+
+Noweb source file
+-----------------
+You also need to edit the path to the SWI-Prolog interpreter in the first line
+of nolist.pl. You should edit it in the nolist.nw source file, not in the
+tangled nolist.pl file directly.
+
+Compiling everything
+--------------------
+After editing the Makefile and the first line of the script:
+
+$ make
+
+Tangling
+--------
+If noweb is installed, and the Makefile is correct, this should do:
+
+$ make nolist.pl
+
+Weaving
+-------
+If noweb and SWI-Prolog V7 or later are installed, and you have the correct
+paths to markup and emptydefn in the Makefile, and the correct path to swipl in
+the first line of the nolist.pl script, this should do:
+
+$ make nolist.tex
+
+Compiling the pdf
+-----------------
+If you have a full LaTeX installation, this should do:
+
+$ make nolist.pdf
+
+You can remove some of the LaTeX packages used at the moment, but this will not
+make the compiled documentation look much better than now.
+
+See the Makefile for the exact commands used for tangling, weaving, and
+compiling the pdf.

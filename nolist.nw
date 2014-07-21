@@ -1,0 +1,717 @@
+% Copyright 2014, Boris Vassilev
+%
+% This file is part of nolist.
+% 
+% Nolist is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% Nolist is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with Nolist.  If not, see <http://www.gnu.org/licenses/>.
+%
+\documentclass[DIV=10,fontsize=10,toc=bibliography]{scrartcl}
+\usepackage{scrhack}
+
+%% Encoding
+%% --------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+%% Font selection
+%% --------------
+%\usepackage{libertine}                      % Biolinum (sans-serif)
+%\usepackage{helvet}                         % Helvetica (sans-serif)
+\usepackage[scaled=.8]{DejaVuSansMono}      % DejaVu Sans Mono (fixed-width)
+\usepackage[scaled=.95]{cabin}              % Cabin (sans-serif)
+\usepackage[bitstream-charter]{mathdesign}  % Charter BT (serif)
+
+%% Math support
+%% ------------
+\usepackage{amsmath}
+
+%% SI Units, spacing in big numbers
+%% --------------------------------
+\usepackage{siunitx}
+\sisetup{detect-mode=true}
+
+%% Hyperrefs in the generated pdf
+%% ------------------------------
+\usepackage{fixltx2e}
+\usepackage[pdfusetitle]{hyperref}
+\hypersetup{allbordercolors=1 1 1}
+
+%% Better kerning and spacing
+%% --------------------------
+\usepackage[kerning,spacing]{microtype}
+\microtypecontext{spacing=nonfrench}
+
+%% Typesetting for URLs
+%% --------------------
+\usepackage{url} % command is \url{foo}
+
+%% Commands for adding extra vertical space to tables
+%% --------------------------------------------------
+\newcommand\T{\rule{0pt}{2.3ex}}       % Top strut
+\newcommand\B{\rule[-1.2ex]{0pt}{0pt}} % Bottom strut
+
+%% Commands for cross-references
+%% -----------------------------
+\newcommand{\pref}[1]{\ref{#1} on page~\pageref{#1}}
+\newcommand{\eref}[1]{Equation~\pref{#1}}
+\newcommand{\fref}[1]{Figure~\pref{#1}}
+
+\usepackage{listings}
+\lstset{aboveskip=\smallskipamount,belowskip=\smallskipamount,basicstyle=\ttfamily}
+
+%% Bibliography with biblatex and biber
+%% ------------------------------------
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{nolist.bib}
+\ExecuteBibliographyOptions{
+    isbn=false,
+    url=true,
+    doi=false,
+    eprint=false,
+    sortcase=false,
+    maxbibnames=15
+}
+% command for citing
+\newcommand{\cit}[1]{\parencite{#1}}
+% command for citing with a page reference
+\newcommand{\pagecit}[2]{\parencite[#2]{#1}}
+
+\title{Another \texttt{noweb} backend for \LaTeX{}: \texttt{nolist}}
+\subtitle{Version 0.1}
+\author{Boris Vassilev}
+
+\begin{document}
+\widowpenalty=10000
+\clubpenalty=10000
+\maketitle\noindent
+\begin{abstract}
+\noindent
+The program [[nolist]] is a back end for the [[noweb]] literate programming tool. It transforms the pipeline representation of [[noweb]] into valid \LaTeX{} in which the package [[listings]] is used to typeset code. [[Noweb]] is language independent and easily extensible. The package [[listings]] offers a good compromise between a full blown pretty-printer and a simple verbatim package, and comes with syntax highlighting for most common programming languages. [[Nolist]] tries to keep weaving---admittedly a tar pit---as simple as possible and only claims to be useful for the very basic needs of the author.
+\end{abstract}
+\tableofcontents
+
+\clearpage
+\section{Introduction}
+Literal programming, a concept introduced by Donald E. Knuth \cit{Knuth1984}, aims to change the traditional attitude of writing programs: not instructing a computer what to do, but rather explaining to a human what the computer should do. This should allow the programmer to follow in his exposition the rationale and logic of the program more freely than the programming language might allow. The program is no longer designed and implemented using a strictly top-down or bottom-up approach. Instead, the programmer follows a ``stream of consciousness'', designing and presenting the data structures and algorithms in the order in which they make a coherent exposition, and not necessarily a valid ``Programming Language X'' program.
+
+ The [[noweb]] literal programming tool \cit{Noweb2008} is programming language agnostic and very easy to extend. This small program, [[nolist]], is a back end extending [[noweb]]. It reads the [[noweb]] pipe representation and converts it to a \LaTeX{} file. The input file, before passed to the [[noweb]] program [[markup]] (the front-end of [[noweb]]), is expected to conform to the [[noweb]] syntax \cit{Ramsey1994}. Nameless code chunks are not allowed, so if the source file contains any nameless code chunks, the output of [[markup]] should be filtered through the [[noweb]] filter [[emptydefn]]. This filter will treat nameless code chunks as continuation of the previous code chunk. It is also assumed that the documentation part is written in proper \LaTeX{}. The code found in code chunks (and quoted code) is typeset with the help of the package [[listings]] \cit{Listings2013}, so it must be loaded in the preamble of the final \LaTeX{} document.
+
+\subsection{Limitations and omissions}
+The most obvious omission at the moment is that the programming language of the code is not set in code listings. This is the on the top of the to-do list, and it will come together with a filter that guesses the language based on the names of code chunks.
+
+The typesetting of code is not customizable in any way and follows the very specific style and taste of the author. The program itself is not designed to be easy to customize.
+
+This is the first literal program written by me and it is probably difficult to understand and bad in many other ways.
+
+\subsection{Few words on programming style}
+The program is written for SWI-Prolog Version 7 and later. Literal lists of code characters are enclosed in backticks: `[[`]]' instead of double quotes: `[["]]'. Some of the predicates used were introduced with Version 7.
+
+Since we want to define simple help predicates as soon as they are used for the first time, some of the predicates in this program are declared as [[discontiguous]]. In this way, a helper predicate definition can appear between the clauses of the definition of the discontiguous predicate being currently discussed and defined.
+
+A predicate with a name [[foo]] will sometimes use a helper predicate named [[foo_1]] (and potentially [[foo_2]] and so on). This is invariably done to avoid the unnecessary for a Prolog program use of if-else constructs and extensive cuts.
+
+\section{Overview of the implementation}
+The program is implemented as a script written in SWI-Prolog \cit{Wielemaker2012}. It reads from standard input and writes to standard output. It starts with a shebang, and the path there is specific to my machine and would have to be adjusted if the script is run elsewhere. It then has some SWI-Prolog script-specific boilerplate code: turning off banner and informational messages, specifying the main goal of the program and turning off the prompt before processing its input. In the spirit of Prolog, the main program will succeed when the input was valid. Invalid input will cause failure, and the [[main]] will backtrack and use its second clause, terminating with a non-zero status. An error in the code that causes a Prolog exception will be caught by the [[catch]] and a message will be written to standard error.
+<<nolist.pl>>=
+#!/home/boris/bin/swipl
+<<Copyright and Licence>>
+
+:- set_prolog_flag(verbose, silent).
+:- initialization main.
+
+:- use_module(smnolist).
+
+main :-
+    prompt(_Prompt, ''),
+    catch(
+        (   <<Read pipeline and convert to documentation>>
+        ),
+        E,
+        (   print_message(error, E),
+            fail
+        )
+    ),
+    halt.
+main :-
+    halt(1).
+@
+
+The rest of the program contains the code for processing the input, transforming it to proper \LaTeX{}, writing it to output, and the DCGs for parsing the input lines. To make the program easier to debug and extend, we put reading and writing in one module, and the transformation in another.
+
+The file defining the module [[smnolist]] exports the predicates that needs to be visible to the main program, [[out/3]] and [[next_line/2]]. It imports the module that does the transformation, [[trnolist]].
+<<smnolist.pl>>=
+:- module(smnolist, [out/3, next_line/2]).
+<<Copyright and Licence>>
+
+:- use_module(trnolist).
+
+<<Read and parse a line>>
+<<Pipeline representation line parsing>>
+<<State machine>>
+@
+
+The module that does the transformation needs to export the predicates for transforming quoted code and code chunks, [[transform_quoted/1]] and [[transform_code_chunk/3]].
+<<trnolist.pl>>=
+:- module(trnolist, [transform_quoted/1, transform_code_chunk/3]).
+<<Copyright and Licence>>
+
+<<Determine appropriate escape character>>
+<<Quoted code to \LaTeX{}>>
+<<Code chunk to \LaTeX{}>>
+<<Emit typeset code>>
+@
+
+\section{Parsing input}
+The input to [[nolist]] is the output of the [[noweb]]'s front-end, [[markup]]. The author of [[noweb]] calls it the ``pipeline representation'' \cit{Ramsey1992}. In this representation, every line begins with a keyword. For [[nolist]], only the \emph{structural} keywords are important (for now). Anyway, to offer some degree of validation, every known keyword is recognized, even if the contents of that line are ignored by [[nolist]]. If the line has relevant content, that content is parsed and returned as well. All lines are processed with the DCG [[keyword_content//2]]. It returns an atom for each recognized keyword, and the content of the line. The content could be a list of character codes if the line contains text, a compound term with a descriptive functor name, or, for lines that don't have content or lines for which the content is ignored, the atom [[empty]].
+<<Pipeline representation line parsing>>=
+:- discontiguous keyword_content//2.
+<<Keywords: begin and end chunk>>
+<<Keywords: text>>
+<<Keywords: define or use a name>>
+<<Keywords: begin and end quoted code>>
+<<Keywords: errors and hacks>>
+<<Keywords: tagging keywords>>
+<<Keywords: wrapper keywords>>
+@
+
+\subsection{Structural keywords}
+Code and documentation chunks are delimited by a matching pair of [[@begin]] and [[@end]]. Both keywords specify the kind of chunk (documentation or code), and its number. Chunk numbers are monotonically increasing, and hence unique. This property is used for labeling each code chunk listing in the \LaTeX{} document (see~\ref{text:chunkrefs} on page~\pageref{text:chunkrefs}).
+<<Keywords: begin and end chunk>>=
+keyword_content(begin, kind_n(Kind, N)) -->
+    `@begin`, space_char, kind_n(Kind, N).
+keyword_content(end, kind_n(Kind, N)) -->
+    `@end`, space_char, kind_n(Kind, N).
+<<Helper DCGs: space, chunk kind and number>>
+@
+The following helper DCGs are used: [[space_char//0]] that parses a single space character (either a space or a tab); [[kind_n//2]] that parses the kind to an atom (either emph{docs} or emph{code}), and the number, with the help of [[chunk_n//1]], which converts the number to an integer.
+<<Helper DCGs: space, chunk kind and number>>=
+space_char -->
+    [S], { code_type(S, space) }.
+kind_n(docs, N) -->
+    `docs`, space_char, chunk_n(N).
+kind_n(code, N) -->
+    `code`, space_char, chunk_n(N).
+chunk_n(N) -->
+    to_eol(N_codes),
+    {   number_codes(N, N_codes),
+        integer(N)
+    }.
+@
+
+Two keywords, [[@text]] and [[@nl]], contain all text and line structure of a chunk. All text is kept as is. The treatment of new lines is left for the predicates that process documentation and code chunks.
+<<Keywords: text>>=
+keyword_content(text, Text) -->
+    `@text`, optional_text(Text).
+keyword_content(nl, empty) -->
+    `@nl`.
+<<Helper DCGs: optional text to end of line>>
+@
+Two more helper DCGs are used: [[optional_text//1]] that reads and returns all remaining text, or an empty list if there was nothing more on the line, and [[to_eol//1]] that simply puts all character codes to the end of the line into a list.
+<<Helper DCGs: optional text to end of line>>=
+optional_text(Text) -->
+    space_char, to_eol(Text).
+optional_text([]) -->
+    []. % it is possible to have empty text lines
+to_eol([C|Cs]) -->
+    [C], !, to_eol(Cs).
+to_eol([]) -->
+    []. % end of character code list is end of line
+@
+Actually, [[optional_text//1]] will return an empty list if [[@text]] is followed by a space character immediately followed by the end of the line \emph{and} if it is followed directly by the end of the line. It is not very clear what an empty text line in the pipeline representation might look like, so both are allowed.
+
+The text string that appears between the ``[[@<<]]'' and ``[[@>>=]]'' at the beginning of each code chunk definition in the [[noweb]] source file are the code chunk \emph{names}. In the pipeline representation, a code chunk's name is defined on a [[@defn]] line. A [[@use]] line inside a code chunk means that the named code chunk is used at that exact position in the current code chunk.
+<<Keywords: define or use a name>>=
+keyword_content(defn, Name) -->
+    `@defn`, space_char, to_eol(Name).
+keyword_content(use, Name) -->
+    `@use`, space_char, to_eol(Name).
+@
+
+Inside a documentation chunk, quoted code can appear. In the [[noweb]] source, it is opened and closed by double opening and double closing brackets: ``[[[[]]'' and ``[[]]]]''. In the pipeline representaion it is delimited by [[@quote]] and [[@endquote]], and [[nolist]] treats it as an unnamed code chunk (see~\ref{text:quotedcode} on page~\pageref{text:quotedcode}).
+<<Keywords: begin and end quoted code>>=
+keyword_content(quote, empty) -->
+    `@quote`.
+keyword_content(endquote, empty) -->
+    `@endquote`.
+@
+
+\subsection{Pipeline errors and dirty hacks}
+There are two special keywords. The ``lying, stealing, cheating'' keyword [[@literal]] \pagecit{Ramsey1994}{13} denotes arbitrary text that is to be copied to the output. Although it is deprecated, it will be ``retained forever in the name of Backward Compatibility'' so [[nolist]] deals with it.
+The other special keyword is [[@fatal]], which is used when an error has occured while processing the [[noweb]] source (or if an error occurs while a filter is processing the pipeline representation). Since the front end or any filter should write an error message to standard error, all that the backend needs to do is terminate with an error status (see~ref{text:fatal} on page~\pageref{text:fatal}).
+<<Keywords: errors and hacks>>=
+keyword_content(literal, Text) -->
+    `@literal`, optional_text(Text).
+keyword_content(fatal, empty) -->
+    `@fatal`, to_eol(_).
+@
+
+\subsection{Tagging and wrapper keywords}
+We have now dealt with all relevant keywords. All other keywords in the pipeline representation are at current parsed, as a form of week input validation, but any content is ignored and the lines themselves are silently ignored by the back end. This should probably change, and at least the [[@language]] keyword should be used. This will allow the backend to take full advantage of the [[listings]] package's main strength: language specific code highlighting.
+<<Keywords: tagging keywords>>=
+keyword_content(file, empty) --> `@file`, to_eol(_).
+keyword_content(line, empty) --> `@line`, to_eol(_).
+keyword_content(language, empty) --> `@language`, to_eol(_).
+keyword_content(index, empty) --> `@index`, to_eol(_).
+keyword_content(xref, empty) --> `@xref`, to_eol(_).
+<<Keywords: wrapper keywords>>=
+keyword_content(header, empty) --> `@header`, to_eol(_).
+keyword_content(trailer, empty) --> `@trailer`, to_eol(_).
+@
+
+\section{State machine}
+A [[noweb]] file is a sequence of documentation and code ``chunks''. In a literate program, documentation and code can be interleaved, while code can be chained or nested using arbitrary code fragments.
+In the pipeline representation emitted by [[markup]] however chunks strictly follow each other, and this order is kept in the final human-readable version of the literate program.
+
+The logic of [[nolist]] follows the structure of a literate program in the pipeline representation: it implements a simple state machine with states emph{out}, emph{docs}, and emph{code}. The initial state is emph{out}. From there, the state machine can transition to a chunk (emph{docs} or emph{code}), and has to transition back to emph{out} before entering the next chunk. The transitions are triggered by the structural keywords [[@begin]] (to enter a chunk) and [[@end]] (to go to emph{out}). The end of the input brings the state machine to its final state, at which point the state machine terminates.
+<<State machine>>=
+<<State out>>
+<<State docs>>
+<<State code>>
+@
+
+The state machine's start state is emph{out}. Processing the pipeline begins by reading and parsing a line and feeding the results to the predicate that implements emph{out}, fittingly called [[out/3]]. The third argument is a list of already seen code chunk names, at the beginning empty. It is used to provide visual hint in the definition of the code chunk of whether it is a new one (see~\ref{text:caption} on page~\pageref{text:caption}).
+<<Read pipeline and convert to documentation>>=
+next_line(Keyword, Content), out(Keyword, Content, [])
+@
+
+The predicate [[next_line/2]] is called every time a line has to be read from input and parsed with the help of the pipeline DCGs. At the end of input, when [[read_line_to_codes/2]] unifies its second argument with the atom [[end_of_file]], the [[Keyword]] argument is instantiated to the atom [[eof]]. Both cuts in the definition of [[next_line_1]] are necessary. The cut in the first clause makes the predicate succeed immediately when the end of input is reached, instead of trying to unify [[end_of_file]] with the first argument in the second clause, where it will be used as an argument to [[phrase/2]], causing it to fail. The cut in the second clause is used because we know that all clauses of the [[keyword_content//2]] DCG are mutually exclusive, but Prolog does not.
+<<Read and parse a line>>=
+next_line(Keyword, Content) :-
+    read_line_to_codes(user_input, Codes),
+    next_line_1(Codes, Keyword, Content).
+next_line_1(end_of_file, eof, empty) :- !.
+next_line_1(Codes, Keyword, Content) :-
+    phrase(keyword_content(Keyword, Content), Codes),
+    !.
+@
+
+\subsection{State \emph{out}}
+The inputs to the state machine that are possible while it is in state emph{out} are end of input, a [[@begin]], [[@literal]] text, or any other ignored keyword.
+<<State out>>=
+:- discontiguous out/3.
+<<Out: end of input>>
+<<Out: begin>>
+<<Out: literal>>
+<<Out: ignored keywords>>
+@
+
+The end of input terminates the state machine successfully.
+<<Out: end of input>>=
+out(eof, empty, _).
+@
+The keyword [[@begin]] triggers a transition to either a documentation or a code chunk.
+<<Out: begin>>=
+out(begin, kind_n(Kind, N), Seen) :-
+    transition_kind_n(Kind, N, Seen).
+
+transition_kind_n(docs, N, Seen) :-
+    docs(N, Seen).
+transition_kind_n(code, N, Seen) :-
+    code(N, Seen).
+@
+We define a code snipped that reads the next line and parses it, staying in state emph{out}.
+<<Out: continue>>=
+next_line(Keyword, Content), out(Keyword, Content, Seen)
+@
+The Master Hacker keyword [[@literal]], when encountered in emph{out}, is treated by immediately writing the contents of the line to standard output, staying in emph{out}.
+<<Out: literal>>=
+out(literal, Text, Seen) :-
+    format("~s", [Text]), <<Out: continue>>.
+@
+\label{text:fatal}
+Encountering [[@fatal]] causes [[out/2]] to fail. The same will happen if any structural keyword appart from [[@begin]] is encountered while in state emph{out}. For documentation puproses, the predicate [[out_bad_kw/1]] enumerates all \emph{known} keywords that would cause [[out//3]] to fail.
+<<Keywords that should not occur in state out>>=
+out_bad_kw(fatal).      out_bad_kw(end).        out_bad_kw(text).
+out_bad_kw(nl).         out_bad_kw(defn).       out_bad_kw(use).
+out_bad_kw(quote).      out_bad_kw(endquote).
+@
+The tagging and wrapper keywords are ignored at the moment.
+<<Out: ignored keywords>>=
+out(file, _, Seen) :- <<Out: continue>>.
+out(line, _, Seen) :- <<Out: continue>>.
+out(language, _, Seen) :- <<Out: continue>>.
+out(index, _, Seen) :- <<Out: continue>>.
+out(xref, _, Seen) :- <<Out: continue>>.
+out(header, _, Seen) :- <<Out: continue>>.
+out(trailer, _, Seen) :- <<Out: continue>>.
+@
+
+\subsection{State \emph{docs}: processing a documentation chunk}
+For a documentation chunk, [[nolist]] writes all lines to standard output before reading the next input line and returning to state emph{out}.
+The predicate [[docs_chunk/2]] processes all input up to the end of the current documentation chunk.
+<<State docs>>=
+docs(N, Seen) :-
+    docs_chunk(N),
+    next_line(Keyword, Content),
+    out(Keyword, Content, Seen).
+docs_chunk(N) :- <<Docs: continue>>.
+<<Read documentation lines>>
+@
+We define a code snipped that reads the next line, parses it, and stays in state emph{docs}.
+<<Docs: continue>>=
+next_line(Keyword, Content), docs_lines(Keyword, Content, N)
+@
+The predicate [[docs_lines/4]] iterates over all input lines, until [[@end]] is reached.
+<<Read documentation lines>>=
+:- discontiguous docs_lines/3.
+<<Docs: end>>
+<<Docs: text>>
+<<Docs: quoted code>>
+@
+When the end of a documentation chunk is reached, the kind and number of the chunk are validated, the iteration ends, and [[docs_chunk/2]] succeeds.
+<<Docs: end>>=
+docs_lines(end, kind_n(docs, N), N).
+@
+Text, new lines, and literal lines are simply written to output, and the iteration continues.
+<<Docs: text>>=
+docs_lines(text, Text, N) :-
+    format("~s", [Text]), <<Docs: continue>>.
+docs_lines(nl, empty, N) :-
+    format("~n"), <<Docs: continue>>.
+docs_lines(literal, Text, N) :-
+    format("~s", [Text]), <<Docs: continue>>.
+@
+
+\label{text:quotedcode}
+Inside documentation chunks, quoted code can appear. Quoted code is treated, and read from input as an ``anonymous'' code chunk, since it does not have a name or a number (so the third and fourth arguments to [[code_lines/5]] are not used). It can contain text, new lines, and uses. The quoted code must be terminated before the end of the documentation chunk, so we process it without leaving the emph{docs} state, before continuing with the iteration over the documentation chunk.
+<<Docs: quoted code>>=
+docs_lines(quote, empty, N) :-
+    quoted_code, <<Docs: continue>>.
+
+quoted_code :-
+    next_line(Keyword, Content),
+    code_lines(Keyword, Content, _, _, Quoted),
+    transform_quoted(Quoted).
+@
+
+Reading a documentation chunk fails when [[@fatal]] is encountered. It will also fail if the end of input occurs inside the documentation chunk, if the structural keyword [[@endquote]] appears before a quote has been started, or if another [[@begin]] appears before the end of the chunk. Other keywords that should not appear inside a documentation chunk are [[@file]] (should only appear \emph{between} chunks), [[@language]] (only applies to code chunks), and [[@header]] and [[@trailer]] (should be the first and last lines of the file, outside of documentation chunks).
+<<Keywords that should not occur in docs>>=
+docs_bad_kw(fatal).     docs_bad_kw(eof).       docs_bad_kw(file).
+docs_bad_kw(endquote).  docs_bad_kw(begin).     docs_bad_kw(language).
+docs_bad_kw(header).    docs_bad_kw(trailer).
+@
+
+The tagging keywords [[@line]], [[@index]], and [[@xref]] are silently ignored.
+<<Read documentation lines>>=
+docs_lines(line, _, N) :- <<Docs: continue>>.
+docs_lines(index, _, N) :- <<Docs: continue>>.
+docs_lines(xref, _, N) :- <<Docs: continue>>.
+@
+
+\subsection{State \emph{code}: reading a code chunk}
+The transformation of a code chunk to properly typeset \LaTeX{} documentation is a bit more involved than that of a documentation chunk, and output has to be delayed until the whole code chunk has been read. When a code chunk is processed, there is additional information that needs to be extracted from the pipeline representation and passed to [[transform_code_chunk/3]]: the name of the code chunk, along with the ``uses'' of other code chunks inside it, and whether this chunk name has been seen before. We check explicitly that we did find a [[@defn]] inside the code chunk and got a name for the chunk. Quoted code, on the other hand, does not have a number, and should not have a name.
+<<State code>>=
+code(N, Seen) :-
+    code_chunk(N, Name, Chunk),
+    nonvar(Name),
+    (   memberchk(Name, Seen)
+    ->  Seen_new = Seen,
+        Continued_chunk = yes-Chunk
+    ;   Seen_new = [Name|Seen],
+        Continued_chunk = no-Chunk
+    ),
+    transform_code_chunk(N, Name, Continued_chunk),
+    next_line(Keyword, Content),
+    out(Keyword, Content, Seen_new).
+code_chunk(N, Name, Chunk) :- <<Code: continue>>.
+<<Read code lines>>
+@
+We define a code snippet that reads a line, parses it, and stays in state emph{code}.
+<<Code: continue>>=
+next_line(Keyword, Content), code_lines(Keyword, Content, N, Name, Chunk)
+@
+The iteration over all code chunk lines is done by [[code_lines/5]]. The first and second arguments are the keyword and content of the current line being processed. The chunk number and name are the third and fourth arguments. Everything read and processed so far is accumulated in the last, fifth argument.
+<<Read code lines>>=
+:- discontiguous code_lines/5.
+<<Code: end>>
+<<Code: set name>>
+<<Code: use name>>
+<<Code: text>>
+<<Code: language>>
+<<Code: ignored keywords>>
+@
+
+As for a documentation chunk, the reading terminates successfully when the chunk is ended with the correct [[@end]]. An anonymous code chunk is ended by [[@endquote]], and we make sure that we did not find a [[@defn]] and set the name for the chunk.
+<<Code: end>>=
+code_lines(end, kind_n(code, N), N, _Name, []).
+code_lines(endquote, empty, _, Name, []) :- var(Name).
+@
+
+The name is set when we encounter [[@defn]]. Up to that point of the iteration over the code chunk lines, the fourth argument of [[code_lines/5]] should be a free variable since [[@defn]] can appear only once in a code chunk.
+<<Code: set name>>=
+code_lines(defn, This_name, N, Name, Chunk) :-
+    var(Name),
+    Name = This_name,
+    <<Code: continue>>.
+@
+
+Uses are wrapped in a term [[use/1]] so that the transformation can typeset them differently from the rest of the code in the chunk.
+<<Code: use name>>=
+code_lines(use, Use_name, N, Name, [use(Use_name)|Chunk]) :-
+    <<Code: continue>>.
+@
+Text lines are wrapped in the term [[text/1]]. New lines are denoted by the atom [[nl]], since quoted code and code chunks treat new lines differently. In quoted code, new lines are replaced with spaces, and consecutive new lines will be collapsed to a single space by \LaTeX. In code chunks, all new lines are retained exactly as they appear in the pipeline representation.
+<<Code: text>>=
+code_lines(text, Text, N, Name, [text(Text)|Chunk]) :-
+    <<Code: continue>>.
+code_lines(nl, empty, N, Name, [nl|Chunk]) :-
+    <<Code: continue>>.
+@
+
+The language of the code in the chunk should eventually be used to set the appropriate option for [[listings]], but for now it is ignored.
+<<Code: language>>=
+code_lines(language, _, N, Name, Chunk) :-
+    <<Code: continue>>.
+@
+
+The other ignored tagging keywords are [[@line]], [[@index]], and [[@xref]]. Any literal content in code chunks is ignored for now, since the semantics of [[@literal]] inside a code chunk, to be typeset in a \LaTeX{} environment, are too complex for this already complex back end.
+<<Code: ignored keywords>>=
+code_lines(line, _, N, Name, Chunk) :-      <<Code: continue>>.
+code_lines(index, _, N, Name, Chunk) :-     <<Code: continue>>.
+code_lines(xref, _, N, Name, Chunk) :-      <<Code: continue>>.
+code_lines(literal, _, N, Name, Chunk) :-   <<Code: continue>>.
+@
+
+As with documentation chunks, reading fails when [[@fatal]] is encountered. It will also fail if the end of input occurs inside the documentation chunk, if another [[@begin]] appears before the end of the chunk, or if [[@quote]] (quoted code) starts within a code chunk. Other keywords that should not appear inside a code chunk are [[@file]] (should only appear \emph{between} chunks), and [[@header]] and [[@trailer]] (should be the first and last lines of the file, outside of documentation chunks).
+<<Keywords that should not occur in code>>=
+code_bad_kw(fatal).     code_bad_kw(eof).       code_bad_kw(file).
+code_bad_kw(quote).     code_bad_kw(begin).     code_bad_kw(header).
+code_bad_kw(trailer).
+@
+
+\section{Transforming code to \LaTeX{}}
+Up to that point, all we have done is reading the pipeline representation from standard input, parsing it and validating it, writing documentation chunks to output, and collecting code chunks in lists. Code chunks now need to be transformed to properly typeset code listings. This is done with the help of the [[listings]] package.
+
+There are going to be quite a few \LaTeX{} commands inside the Prolog code used for the transformation, and they all start with a backslash, `[[\]]'. These backslashes need to be escaped with an extra backslash inside Prolog code. In other words, there will be a lot of ``[[\\foo]]'' when the intention is to have ``[[\foo]]''.
+
+Quoted code and code chunks are treated differently. Quoted code is typeset inline, using the [[\lstinline]] command. Code chunks are typeset as floating listings, using the [[lstlisting]] environment. However, in both cases, we can have uses inside the code, and we want to typeset these in the accepted manner, namely, as \guillemotleft\textit{Chunk name}\guillemotright.
+<<Use front>>=
+`{\\rmfamily\\guillemotleft{\\itshape{}`
+<<Use back>>=
+`}\\guillemotright}`
+@
+
+For both cases, [[listings]] provides a mechanism for typesetting code verbatim, which involves the use of escape characters. An escape character can only be a character that is not used in the code that we are currently typesetting. In this program, an appropriate escape character is chosen by finding a character that is not in the set of characters in the current code chunk. The predicate [[determine_esc/2]] takes the list of character code sets, finds their union, and then checks whether there is a ``graph'' character code that does not appear inside the union.
+<<Determine appropriate escape character>>=
+determine_esc(Char_code_sets, Esc, EscEsc) :-
+    ord_union(Char_code_sets, Used_char_codes),
+    code_type(Esc, graph),
+    \+ ord_memberchk(Esc, Used_char_codes),
+    !, % sussess
+    (   latex_special(Esc)
+    ->  EscEsc = [0'\\,Esc]
+    ;   EscEsc = [Esc]
+    ).
+%determine_esc(_, _, _) :-
+%    throw
+<<\LaTeX{} special characters>>
+@ The list of sets that this predicate takes as its first argument are collected while iterating over code during transformation.
+
+If the escape character we chose to use is a special character for \LaTeX{}, we need to escape it at its first use in the respective [[listings]] command. For [[\lstinline]], for example, we need to write ``[[\lstinline[]\%foo%]]'' if we use the percent sign as an escape character. If setting the escape character as an option to the [[lstlisting]] environment, the option should be set by ``[[escapechar=\%]]''.
+<<\LaTeX{} special characters>>=
+latex_special(0'#).     latex_special(0'$).     latex_special(0'%).
+latex_special(0'^).     latex_special(0'&).     latex_special(0'_).
+latex_special(0'{).     latex_special(0'}).     latex_special(0'~).
+latex_special(0'\\).
+@
+
+\subsection{Quoted code}
+For quoted (inline) code, the string enclosed in ``[[[[]]'' and ``[[]]]]'' in the [[noweb]] source is treated as text to be typeset as inline code, separated in fragments by uses, for example, ``[[foo <<bar>> baz]]''. Any number of uses can occur inside one single chunk of quoted code. A use inside quoted code is typeset as normal \LaTeX{}, and interrupts the verbatim typesetting of quoted code. New lines inside quoted code are replaced with spaces. Uses are typeset as shown above.
+<<Quoted code to \LaTeX{}>>=
+transform_quoted([]).
+transform_quoted([This|Rest]) :-
+    (   This == nl
+    ->  format(" "),
+        transform_quoted(Rest)
+    ;   compound_name_arguments(This, Keyword, [Content]),
+        transform_quoted_1(Keyword, Content, Rest)
+    ).
+transform_quoted_1(use, Use_name, Rest) :-
+    format("~s~s~s", [<<Use front>>, Use_name, <<Use back>>]),
+    transform_quoted(Rest).
+@
+So far, the predicates [[transform_quoted/1]] and [[transform_quoted_1/3]] cover cases like ``[[[[@<<A@>>]]]]'' to [[<<A>>]], or ``[[[[@<<A@>>@<<B@>>]]]]'' to [[<<A>><<B>>]], or ``[[[[@<<A@>>@<<B@>>@<<C@>>]]]]'' to [[<<A>><<B>><<C>>]], and so on.
+
+If there is text (code) in the quoted code, it is sorted, to acquire the set of characters occuring in it (needed for finding the escape character later), and the set is added to an accumulator (the second argument of the predicate). The code itself is accumulated in the third argument.
+<<Quoted code to \LaTeX{}>>=
+transform_quoted_1(text, Text, Rest) :-
+    sort(Text, Chars_code_set),
+    quoted_to_inline(Rest, [Chars_code_set], [Text]).
+<<Transform quoted to inline>>
+@
+The predicate [[quoted_to_inline/3]] will iterate over all quoted code up to the end of it, determine an appropriate escape, and emit the collected code.
+<<Transform quoted to inline>>=
+:- discontiguous quoted_to_inline/3.
+quoted_to_inline([], Code_char_sets, Inline) :-
+    emit_inline(Code_char_sets, Inline).
+
+emit_inline(Code_char_sets, Inline) :-
+    determine_esc(Code_char_sets, Esc, EscEsc),
+    format("\\lstinline[]~s", [EscEsc]),
+    emit_code(Inline),
+    format("~c", [Esc]).
+@
+
+A use ends the current fragment, so the fragment is emitted, followed by the use. Text is added to the collected lines (as above, new lines are replaced by spaces), and the iteration continues.
+<<Transform quoted to inline>>=
+quoted_to_inline([This|Rest], Code_char_sets, Inline) :-
+    (   This == nl
+    ->  quoted_to_inline(Rest, Code_char_sets, [` `|Inline])
+    ;   compound_name_arguments(This, Keyword, [Content]),
+        quoted_to_inline_1(Keyword, Content, Rest, Code_char_sets, Inline)
+    ).
+
+quoted_to_inline_1(use, Use_name, Rest, Code_char_sets, Inline) :-
+    emit_inline(Code_char_sets, Inline),
+    format("~s~s~s", [<<Use front>>, Use_name, <<Use back>>]),
+    transform_quoted(Rest).
+quoted_to_inline_1(text, Text, Rest, Code_char_sets, Inline) :-
+    sort(Text, Set),
+    quoted_to_inline(Rest, [Set|Code_char_sets], [Text|Inline]).
+@
+
+\subsection{Code chunks}
+Code chunks are typeset as floating code listings, using the [[lstlisting]] environment. All necessary information to typeset the code chunk is passed as options to the environment.
+<<Begin floating listing environment>>=
+format("\\begin{lstlisting}[float=tp")
+@
+The vertical space between the caption and the double line on top is increased from ``small'' to ``medium'', and the spacing between lines of code is decreased.
+<<Adjust vertical spacing of the listing>>=
+format(",belowcaptionskip=\\medskipamount,lineskip=-1.2pt")
+@
+\label{text:caption}
+The chunk name is used to set the caption of the listing. Unlike uses, chunk definitions do not have the name in italics. When a chunk is a continuation of a previously defined chunk, the name is followed by ``, cont.''. Note that since the caption can be any valid \LaTeX{} code, it is enclosed in braces.
+<<Set listing caption>>=
+continued(Cont, Cont_str),
+format(",caption={\\guillemotleft{~s}\\guillemotright~s}", [Name, Cont_str])
+<<Code chunk to \LaTeX{}>>=
+continued(yes, `, cont.`).
+continued(no, ``).
+@
+To make listings visually more distinct on a page, especially listings with very few lines of code, all floating listings are typeset with a double line above and a single line below the code.
+<<Put lines above and below the listing>>=
+format(",frame=Tb,framesep=2pt,rulesep=1.5pt")
+@
+
+\label{text:chunkrefs}
+Since code chunks are typeset in a floating environment, they will sometimes be on a later page than the text explaining them. At the point where a chunk is defined, a reference to the listing is inserted. It references the number, as numbered by the [[listings]] package, and the page.
+<<Insert reference to the listing>>=
+format(" (Listing~~\\ref{lst:~d} on page~~\\pageref{lst:~d})~n", [N, N])
+@ The label for the listing is set using the unique chunk number for that code chunk.
+<<Set the listing's label>>=
+format(",label=lst:~d", [N])
+@
+
+The last option that is necessary is the escape character, in case there are uses in the environment. Emitting this option and closing the list of options has to be delayed until an appropriate escape character has been determined. This is done by the predicate that iterates over the code and transforms it, [[transform_code/5]].
+<<Code chunk to \LaTeX{}>>=
+transform_code_chunk(N, Name, Cont-Chunk) :-
+    <<Insert reference to the listing>>,
+    <<Begin floating listing environment>>,
+    <<Set listing caption>>,
+    <<Adjust vertical spacing of the listing>>,
+    <<Put lines above and below the listing>>,
+    <<Set the listing's label>>,
+    transform_code(Chunk, [], [], no, _Esc).
+@
+
+The predicate [[transform_code/5]] is seeded with empty lists for the accumulators for character code sets and code lines. The fourth argument is a switch, either [[yes]] or [[no]], which says whether there were any uses in the code chunk. When first argument is the empty list, the lines of code making up the code chunk have been all transformed and the chunk can be emitted.
+<<Code chunk to \LaTeX{}>>=
+:- discontiguous transform_code/5.
+transform_code([], Char_code_sets, Code, Has_uses, Esc) :-
+    emit_chunk(Has_uses, Char_code_sets, Code, Esc).
+<<Emit chunk>>
+@
+
+If there were uses in the chunk to be emitted, the appropriate escapes are determined. At this point, emitting the chunk is ``finalized'': the escape character option of the [[lstlisting]] environment is set (if there were any uses), the typeset code, with all escape characters now instantiated, is emitted, and the environment is ended.
+<<Emit chunk>>=
+emit_chunk(yes, Char_code_sets, Code, Esc) :-
+    sort(<<Use front>>, FS),
+    sort(<<Use back>>, BS),
+    determine_esc([FS,BS|Char_code_sets], Esc, EscEsc),
+    format(",escapechar=~s]", [EscEsc]),
+    finalize_chunk(Code).
+emit_chunk(no, _, Code, _) :-
+    format("]"),
+    finalize_chunk(Code).
+
+finalize_chunk(Code) :-
+    emit_code(Code),
+    format("\\"), format("end{lstlisting}").
+@ The same [[emit_code/1]] is used as for writing quoted code.
+
+The other clauses to [[transform_code/5]] deal with text, new lines, and uses. New lines are replaced by the new line character.
+<<Code chunk to \LaTeX{}>>=
+transform_code([This|Rest], Char_code_sets, Code, Has_uses, Esc) :-
+    (   This == nl
+    ->  transform_code(Rest, Char_code_sets, [`\n`|Code], Has_uses, Esc)
+    ;   compound_name_arguments(This, Keyword, [Content]),
+        transform_code_1(
+            Keyword, Content,
+            Rest, Char_code_sets, Code, Has_uses, Esc
+        )
+    ).
+<<Transform code lines>>
+@
+
+Text is not transformed in any way, just added to the accumulator for code. The set of codes on any text line or use line is calculated by sorting and added to the accumulator of character code sets.
+<<Transform code lines>>=
+transform_code_1(text, Text, Rest, Char_code_sets, Code, Has_uses, Esc) :-
+    sort(Text, Set),
+    transform_code(Rest, [Set|Char_code_sets], [Text|Code], Has_uses, Esc).
+transform_code_1(use, Use_name, Rest, Char_code_sets, Code, _, Esc) :-
+    sort(Use_name, Set),
+    transform_code(
+        Rest,
+        [Set|Char_code_sets],
+        [[Esc], <<Use back>>, Use_name, <<Use front>>, [Esc]|Code],
+        yes,
+        Esc
+    ).
+@ Note that the front and back of the typeset use need to be added to the accumulator for typeset code in reverse order, since all code is in the accumulator in reverse order.
+
+One detail of the implementation is that while uses from the pipeline representation are typeset, the escape character has not yet been determined. At this point, all escapes are represented by the same free variable, [[Esc]]. This variable is instantiated just before the code is actually written to output.
+
+\subsection{Emitting the typeset code}
+Since emitting the code happens in the last step of the iteration over the code, the collected lines are in reverse order.
+<<Emit typeset code>>=
+emit_code([]).
+emit_code([This|Rest]) :-
+    emit_code(Rest),
+    format("~s", [This]).
+@
+
+\clearpage
+\printbibliography
+
+\appendix
+\section{Licence}
+<<Copyright and Licence>>=
+% Copyright 2014, Boris Vassilev
+%
+% This file is part of nolist.
+% 
+% Nolist is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% Nolist is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with Nolist.  If not, see <http://www.gnu.org/licenses/>.
+@
+
+\end{document}
