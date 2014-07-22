@@ -1,17 +1,17 @@
 % Copyright 2014, Boris Vassilev
 %
 % This file is part of nolist.
-% 
+%
 % Nolist is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % (at your option) any later version.
-% 
+%
 % Nolist is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with Nolist.  If not, see <http://www.gnu.org/licenses/>.
 %
@@ -123,7 +123,7 @@ A predicate with a name [[foo]] will sometimes use a helper predicate named [[fo
 \section{Overview of the implementation}
 The program is implemented as a script written in SWI-Prolog \cit{Wielemaker2012}. It reads from standard input and writes to standard output. It starts with a shebang, and the path there is specific to my machine and would have to be adjusted if the script is run elsewhere. It then has some SWI-Prolog script-specific boilerplate code: turning off banner and informational messages, specifying the main goal of the program and turning off the prompt before processing its input. In the spirit of Prolog, the main program will succeed when the input was valid. Invalid input will cause failure, and the [[main]] will backtrack and use its second clause, terminating with a non-zero status. An error in the code that causes a Prolog exception will be caught by the [[catch]] and a message will be written to standard error.
 <<nolist.pl>>=
-#!/home/boris/bin/swipl
+#!/home/bvassile/bin/swipl
 <<Copyright and Licence>>
 
 :- set_prolog_flag(verbose, silent).
@@ -699,17 +699,17 @@ emit_code([This|Rest]) :-
 % Copyright 2014, Boris Vassilev
 %
 % This file is part of nolist.
-% 
+%
 % Nolist is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % (at your option) any later version.
-% 
+%
 % Nolist is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with Nolist.  If not, see <http://www.gnu.org/licenses/>.
 @

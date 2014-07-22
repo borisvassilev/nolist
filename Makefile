@@ -2,8 +2,10 @@ nolist.pdf : nolist.tex nolist.bib
 	latexmk -pdf -halt-on-error -bibtex nolist
 
 nolist.tex : nolist.nw nolist.pl
-	~/lib/markup nolist.nw | ~/lib/emptydefn | ./nolist.pl > nolist.tex
-	
+	/usr/lib/noweb/markup nolist.nw \
+	    | /usr/lib/noweb/emptydefn \
+	    | ./nolist.pl > nolist.tex
+
 nolist.pl : nolist.nw
 	notangle -Rnolist.pl nolist.nw > nolist.pl
 	chmod u+x nolist.pl
