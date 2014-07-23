@@ -93,14 +93,16 @@
 \begin{document}
 \widowpenalty=10000
 \clubpenalty=10000
-\maketitle\noindent
+\maketitle
+\thispagestyle{empty}
 \begin{abstract}
 \noindent
 The program [[nolist]] is a back end for the [[noweb]] literate programming tool. It transforms the pipeline representation of [[noweb]] into valid \LaTeX{} in which the package [[listings]] is used to typeset code. [[Noweb]] is language independent and easily extensible. The package [[listings]] offers a good compromise between a full blown pretty-printer and a simple verbatim package, and comes with syntax highlighting for most common programming languages. [[Nolist]] tries to keep weaving---admittedly a tar pit---as simple as possible and only claims to be useful for the very basic needs of the author.
 \end{abstract}
+\clearpage
+
 \tableofcontents
 
-\clearpage
 \section{Introduction}
 Literal programming, a concept introduced by Donald E. Knuth \cit{Knuth1984}, aims to change the traditional attitude of writing programs: not instructing a computer what to do, but rather explaining to a human what the computer should do. This should allow the programmer to follow in his exposition the rationale and logic of the program more freely than the programming language might allow. The program is no longer designed and implemented using a strictly top-down or bottom-up approach. Instead, the programmer follows a ``stream of consciousness'', designing and presenting the data structures and algorithms in the order in which they make a coherent exposition, and not necessarily a valid ``Programming Language X'' program.
 
