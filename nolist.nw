@@ -126,7 +126,6 @@ A predicate with a name [[foo]] will sometimes use a helper predicate named [[fo
 The program is implemented as a script written in SWI-Prolog \cit{Wielemaker2012}. It reads from standard input and writes to standard output. It starts with a shebang, and the path there is specific to my machine and would have to be adjusted if the script is run elsewhere. It then has some SWI-Prolog script-specific boilerplate code: turning off banner and informational messages, specifying the main goal of the program and turning off the prompt before processing its input. In the spirit of Prolog, the main program will succeed when the input was valid. Invalid input will cause failure, and the [[main]] will backtrack and use its second clause, terminating with a non-zero status. An error in the code that causes a Prolog exception will be caught by the [[catch]] and a message will be written to standard error.
 <<nolist.pl>>=
 #!/home/bvassile/bin/swipl
-<<Copyright and Licence>>
 
 :- set_prolog_flag(verbose, silent).
 :- initialization main.
@@ -153,7 +152,6 @@ The rest of the program contains the code for processing the input, transforming
 The file defining the module [[smnolist]] exports the predicates that needs to be visible to the main program, [[out/3]] and [[next_line/2]]. It imports the module that does the transformation, [[trnolist]].
 <<smnolist.pl>>=
 :- module(smnolist, [out/3, next_line/2]).
-<<Copyright and Licence>>
 
 :- use_module(trnolist).
 
@@ -165,7 +163,6 @@ The file defining the module [[smnolist]] exports the predicates that needs to b
 The module that does the transformation needs to export the predicates for transforming quoted code and code chunks, [[transform_quoted/1]] and [[transform_code_chunk/3]].
 <<trnolist.pl>>=
 :- module(trnolist, [transform_quoted/1, transform_code_chunk/3]).
-<<Copyright and Licence>>
 
 <<Determine appropriate escape character>>
 <<Quoted code to \LaTeX{}>>
@@ -567,17 +564,15 @@ emit_inline(Code_char_sets, Inline) :-
 A use ends the current fragment, so the fragment is emitted, followed by the use. Text is added to the collected lines (as above, new lines are replaced by spaces), and the iteration continues.
 <<Transform quoted to inline>>=
 quoted_to_inline([This|Rest], Code_char_sets, Inline) :-
-    (   This == nl
-    ->  quoted_to_inline(Rest, Code_char_sets, [` `|Inline])
-    ;   compound_name_arguments(This, Keyword, [Content]),
-        quoted_to_inline_1(Keyword, Content, Rest, Code_char_sets, Inline)
-    ).
+    quoted_to_inline_1(This, Rest, Code_char_sets, Inline).
 
-quoted_to_inline_1(use, Use_name, Rest, Code_char_sets, Inline) :-
+quoted_to_inline_1(nl, Rest, Code_char_sets, Inline) :-
+    quoted_to_inline(Rest, Code_char_sets, [` `|Inline]).
+quoted_to_inline_1(use(Use_name), Rest, Code_char_sets, Inline) :-
     emit_inline(Code_char_sets, Inline),
     format("~s~s~s", [<<Use front>>, Use_name, <<Use back>>]),
     transform_quoted(Rest).
-quoted_to_inline_1(text, Text, Rest, Code_char_sets, Inline) :-
+quoted_to_inline_1(text(Text), Rest, Code_char_sets, Inline) :-
     sort(Text, Set),
     quoted_to_inline(Rest, [Set|Code_char_sets], [Text|Inline]).
 @
@@ -601,7 +596,7 @@ continued(yes, `, cont.`).
 continued(no, ``).
 @
 To make listings visually more distinct on a page, especially listings with very few lines of code, all floating listings are typeset with a double line above and a single line below the code.
-<<Put lines above and below the listing>>=
+<<Draw lines above and below the listing>>=
 format(",frame=Tb,framesep=2pt,rulesep=1.5pt")
 @
 
@@ -621,7 +616,7 @@ transform_code_chunk(N, Name, Cont-Chunk) :-
     <<Begin floating listing environment>>,
     <<Set listing caption>>,
     <<Adjust vertical spacing of the listing>>,
-    <<Put lines above and below the listing>>,
+    <<Draw lines above and below the listing>>,
     <<Set the listing's label>>,
     transform_code(Chunk, [], [], no, _Esc).
 @
@@ -652,28 +647,19 @@ finalize_chunk(Code) :-
 @ The same [[emit_code/1]] is used as for writing quoted code.
 
 The other clauses to [[transform_code/5]] deal with text, new lines, and uses. New lines are replaced by the new line character.
+Text is not transformed in any way, just added to the accumulator for code. The set of codes on any text line or use line is calculated by sorting and added to the accumulator of character code sets.
 <<Code chunk to \LaTeX{}>>=
 transform_code([This|Rest], Char_code_sets, Code, Has_uses, Esc) :-
-    (   This == nl
-    ->  transform_code(Rest, Char_code_sets, [`\n`|Code], Has_uses, Esc)
-    ;   compound_name_arguments(This, Keyword, [Content]),
-        transform_code_1(
-            Keyword, Content,
-            Rest, Char_code_sets, Code, Has_uses, Esc
-        )
-    ).
-<<Transform code lines>>
-@
+    transform_code_1(This, Rest, Char_code_sets, Code, Has_uses, Esc).
 
-Text is not transformed in any way, just added to the accumulator for code. The set of codes on any text line or use line is calculated by sorting and added to the accumulator of character code sets.
-<<Transform code lines>>=
-transform_code_1(text, Text, Rest, Char_code_sets, Code, Has_uses, Esc) :-
+transform_code_1(nl, Rest, Char_code_sets, Code, Has_uses, Esc) :-
+    transform_code(Rest, Char_code_sets, [`\n`|Code], Has_uses, Esc).
+transform_code_1(text(Text), Rest, Char_code_sets, Code, Has_uses, Esc) :-
     sort(Text, Set),
     transform_code(Rest, [Set|Char_code_sets], [Text|Code], Has_uses, Esc).
-transform_code_1(use, Use_name, Rest, Char_code_sets, Code, _, Esc) :-
+transform_code_1(use(Use_name), Rest, Char_code_sets, Code, _, Esc) :-
     sort(Use_name, Set),
-    transform_code(
-        Rest,
+    transform_code(Rest,
         [Set|Char_code_sets],
         [[Esc], <<Use back>>, Use_name, <<Use front>>, [Esc]|Code],
         yes,
@@ -697,23 +683,23 @@ emit_code([This|Rest]) :-
 
 \appendix
 \section{Licence}
-<<Copyright and Licence>>=
-% Copyright 2014, Boris Vassilev
-%
-% This file is part of nolist.
-%
-% Nolist is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-%
-% Nolist is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with Nolist.  If not, see <http://www.gnu.org/licenses/>.
-@
+Copyright 2014, Boris Vassilev
+\medskip
+
+\noindent
+This file is part of [[nolist]].
+
+[[Nolist]] is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+[[Nolist]] is distributed in the hope that it will be useful,
+but \textbf{without any warranty}; without even the implied warranty of
+\textbf{merchantability} or \textbf{fitness for a particular purpose}.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with [[Nolist]].  If not, see \url{http://www.gnu.org/licenses/}.
 
 \end{document}
