@@ -599,7 +599,7 @@ format(",lineskip=-1.2pt")
 @
 To make listings visually more distinct on a page, especially listings with very few lines of code, all listings are typeset with a line above and a line below the code.
 <<Draw lines above and below the listing>>=
-format(",frameshape={yny}{n}{n}{yny}")
+format(",frameshape={ynn}{n}{n}{ynn}")
 @
 
 The last option that is necessary is the escape character, in case there are uses in the environment. Emitting this option and closing the list of options has to be delayed until an appropriate escape character has been determined. This is done by the predicate that iterates over the code and transforms it, [[transform_code/5]]. The predicate [[transform_code/5]] is seeded with the set of characters ocurring on
