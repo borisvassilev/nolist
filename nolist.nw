@@ -135,12 +135,8 @@ The program is implemented as a script written in SWI-Prolog \cit{Wielemaker2012
 main :-
     prompt(_Prompt, ''),
     catch(
-        (   <<Read pipeline and convert to documentation>>
-        ),
-        E,
-        (   print_message(error, E),
-            fail
-        )
+        ( <<Read pipeline and convert to documentation>> ),
+        E, ( print_message(error, E), fail )
     ),
     halt.
 main :-
@@ -597,12 +593,12 @@ The spacing between lines of code is decreased.
 <<Adjust vertical spacing of the listing>>=
 format(",lineskip=-1.2pt")
 @
-To make listings visually more distinct on a page, especially listings with very few lines of code, all listings are typeset with a line above and a line below the code.
+To make listings visually more distinct on a page, especially listings with very few lines of code, all listings are typeset with the upper and lower left corners of the listing visible.
 <<Draw lines above and below the listing>>=
-format(",frameshape={ynn}{n}{n}{ynn}")
+format(",frameshape={ynn}{n}{n}{ynn},framesep=4pt")
 @
 
-The last option that is necessary is the escape character, in case there are uses in the environment. Emitting this option and closing the list of options has to be delayed until an appropriate escape character has been determined. This is done by the predicate that iterates over the code and transforms it, [[transform_code/5]]. The predicate [[transform_code/5]] is seeded with the set of characters ocurring on
+The last option that is necessary is the escape character, in case there are uses in the environment. Emitting this option and closing the list of options has to be delayed until an appropriate escape character has been determined. This is done by the predicate that iterates over the code and transforms it, [[transform_code/5]], which takes the code chunk as its first argument. The second argument is an accumulator for the sets of characters ocurring on each line. It is seeded with the set of characters ocurring in the typeset name of the code chunk. The third argument is an accumulator for the typeset code of the code chunk, and it is seeded with the escaped code chunk name. The last argument is the escape character itself.
 <<Code chunk to \LaTeX{}>>=
 transform_code_chunk(N, Name, Cont-Chunk) :-
     <<Begin listing environment>>,
@@ -613,7 +609,7 @@ transform_code_chunk(N, Name, Cont-Chunk) :-
 @
 
 When first argument is the empty list, the lines of code making up the code chunk have been all transformed and the chunk can be emitted.
-Now, the appropriate escapes are determined. At this point, emitting the chunk is ``finalized'': the escape character option of the [[lstlisting]] environment is set (if there were any uses), the typeset code, with all escape characters now instantiated, is emitted, and the environment is ended.
+At this point, we determine the appropriate escape character. Emitting the chunk is finalized: the escape character option of the [[lstlisting]] environment is set (if there were any uses), the typeset code, with all escape characters now instantiated, is emitted, and the environment is ended.
 <<Code chunk to \LaTeX{}>>=
 :- discontiguous transform_code/5.
 transform_code([], Char_code_sets, Code, Esc) :-
