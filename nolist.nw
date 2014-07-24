@@ -99,7 +99,6 @@
 \noindent
 The program [[nolist]] is a back end for the [[noweb]] literate programming tool. It transforms the pipeline representation of [[noweb]] into valid \LaTeX{} in which the package [[listings]] is used to typeset code. [[Noweb]] is language independent and easily extensible. The package [[listings]] offers a good compromise between a full blown pretty-printer and a simple verbatim package, and comes with syntax highlighting for most common programming languages. [[Nolist]] tries to keep weaving---admittedly a tar pit---as simple as possible and only claims to be useful for the very basic needs of the author.
 \end{abstract}
-\clearpage
 
 \tableofcontents
 
@@ -491,9 +490,9 @@ There are going to be quite a few \LaTeX{} commands inside the Prolog code used 
 
 Quoted code and code chunks are treated differently. Quoted code is typeset inline, using the [[\lstinline]] command. Code chunks are typeset as floating listings, using the [[lstlisting]] environment. However, in both cases, we can have uses inside the code, and we want to typeset these in the accepted manner, namely, as \guillemotleft\textit{Chunk name}\guillemotright.
 <<Use front>>=
-`{\\rmfamily\\guillemotleft{\\itshape{}`
+`{\\rmfamily$\\langle$ {\\itshape{}`
 <<Use back>>=
-`}\\guillemotright}`
+`} $\\rangle$}`
 @
 
 For both cases, [[listings]] provides a mechanism for typesetting code verbatim, which involves the use of escape characters. An escape character can only be a character that is not used in the code that we are currently typesetting. In this program, an appropriate escape character is chosen by finding a character that is not in the set of characters in the current code chunk. The predicate [[determine_esc/2]] takes the list of character code sets, finds their union, and then checks whether there is a ``graph'' character code that does not appear inside the union.
@@ -578,7 +577,10 @@ quoted_to_inline_1(text(Text), Rest, Code_char_sets, Inline) :-
 The chunk name is typeset at the top of the listing. Unlike uses, chunk definitions do not have the name in italics. When a chunk is a continuation of a previously defined chunk, the name is followed by ``$+\!\!\equiv$'', instead of just ``$\equiv$''.
 <<Write code chunk name>>=
 continued(Cont, Cont_str),
-Name_list = [`{\\rmfamily$\\langle$ `, Name, ` $\\rangle `, Cont_str, `\\equiv$}`],
+Name_list = [
+    `{\\rmfamily$\\langle$ {\\bfseries{}`, Name, `} $\\rangle `,
+    Cont_str, `\\equiv$}`
+],
 append(Name_list, Name_str),
 sort(Name_str, Name_set)
 <<Code chunk to \LaTeX{}>>=
@@ -595,7 +597,7 @@ format(",lineskip=-1.2pt")
 @
 To make listings visually more distinct on a page, especially listings with very few lines of code, all listings are typeset with the upper and lower left corners of the listing visible.
 <<Draw lines above and below the listing>>=
-format(",frameshape={ynn}{n}{n}{ynn},framesep=4pt")
+format(",frameshape={nnn}{n}{n}{ynn},framesep=3pt")
 @
 
 The last option that is necessary is the escape character, in case there are uses in the environment. Emitting this option and closing the list of options has to be delayed until an appropriate escape character has been determined. This is done by the predicate that iterates over the code and transforms it, [[transform_code/5]], which takes the code chunk as its first argument. The second argument is an accumulator for the sets of characters ocurring on each line. It is seeded with the set of characters ocurring in the typeset name of the code chunk. The third argument is an accumulator for the typeset code of the code chunk, and it is seeded with the escaped code chunk name. The last argument is the escape character itself.
@@ -618,6 +620,7 @@ transform_code([], Char_code_sets, Code, Esc) :-
     determine_esc([FS,BS|Char_code_sets], Esc, EscEsc),
     format(",escapechar=~s]~n", [EscEsc]),
     emit_code(Code),
+    %format("~c$\\square$~c", [Esc, Esc]),
     format("\\"), format("end{lstlisting}").
 @ The same [[emit_code/1]] is used as for writing quoted code.
 
