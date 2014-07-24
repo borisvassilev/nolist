@@ -67,7 +67,7 @@
 \newcommand{\fref}[1]{Figure~\pref{#1}}
 
 \usepackage{listings}
-\lstset{aboveskip=\smallskipamount,belowskip=\smallskipamount,basicstyle=\ttfamily}
+\lstset{basicstyle=\ttfamily}
 
 %% Bibliography with biblatex and biber
 %% ------------------------------------
@@ -184,7 +184,7 @@ The input to [[nolist]] is the output of the [[noweb]]'s front-end, [[markup]]. 
 @
 
 \subsection{Structural keywords}
-Code and documentation chunks are delimited by a matching pair of [[@begin]] and [[@end]]. Both keywords specify the kind of chunk (documentation or code), and its number. Chunk numbers are monotonically increasing, and hence unique. This property is used for labeling each code chunk listing in the \LaTeX{} document (see~\ref{text:chunkrefs} on page~\pageref{text:chunkrefs}).
+Code and documentation chunks are delimited by a matching pair of [[@begin]] and [[@end]]. Both keywords specify the kind of chunk (documentation or code), and its number. Chunk numbers are monotonically increasing, and hence unique.
 <<Keywords: begin and end chunk>>=
 keyword_content(begin, kind_n(Kind, N)) -->
     `@begin`, space_char, kind_n(Kind, N).
@@ -278,7 +278,7 @@ The logic of [[nolist]] follows the structure of a literate program in the pipel
 <<State code>>
 @
 
-The state machine's start state is emph{out}. Processing the pipeline begins by reading and parsing a line and feeding the results to the predicate that implements emph{out}, fittingly called [[out/3]]. The third argument is a list of already seen code chunk names, at the beginning empty. It is used to provide visual hint in the definition of the code chunk of whether it is a new one (see~\ref{text:caption} on page~\pageref{text:caption}).
+The state machine's start state is emph{out}. Processing the pipeline begins by reading and parsing a line and feeding the results to the predicate that implements emph{out}, fittingly called [[out/3]]. The third argument is a list of already seen code chunk names, at the beginning empty. It is used to provide visual hint in the definition of the code chunk of whether it is a new one (see~\ref{text:codetitle} on page~\pageref{text:codetitle}).
 <<Read pipeline and convert to documentation>>=
 next_line(Keyword, Content), out(Keyword, Content, [])
 @
@@ -578,70 +578,49 @@ quoted_to_inline_1(text(Text), Rest, Code_char_sets, Inline) :-
 @
 
 \subsection{Code chunks}
-Code chunks are typeset as floating code listings, using the [[lstlisting]] environment. All necessary information to typeset the code chunk is passed as options to the environment.
-<<Begin floating listing environment>>=
-format("\\begin{lstlisting}[float=tp")
-@
-The vertical space between the caption and the double line on top is increased from ``small'' to ``medium'', and the spacing between lines of code is decreased.
-<<Adjust vertical spacing of the listing>>=
-format(",belowcaptionskip=\\medskipamount,lineskip=-1.2pt")
-@
-\label{text:caption}
-The chunk name is used to set the caption of the listing. Unlike uses, chunk definitions do not have the name in italics. When a chunk is a continuation of a previously defined chunk, the name is followed by ``, cont.''. Note that since the caption can be any valid \LaTeX{} code, it is enclosed in braces.
-<<Set listing caption>>=
+\label{text:codetitle}
+The chunk name is typeset at the top of the listing. Unlike uses, chunk definitions do not have the name in italics. When a chunk is a continuation of a previously defined chunk, the name is followed by ``$+\!\!\equiv$'', instead of just ``$\equiv$''.
+<<Write code chunk name>>=
 continued(Cont, Cont_str),
-format(",caption={\\guillemotleft{~s}\\guillemotright~s}", [Name, Cont_str])
+Name_list = [`{\\rmfamily$\\langle$ `, Name, ` $\\rangle `, Cont_str, `\\equiv$}`],
+append(Name_list, Name_str),
+sort(Name_str, Name_set)
 <<Code chunk to \LaTeX{}>>=
-continued(yes, `, cont.`).
+continued(yes, `+\\!\\!`).
 continued(no, ``).
 @
-To make listings visually more distinct on a page, especially listings with very few lines of code, all floating listings are typeset with a double line above and a single line below the code.
+Code chunks are typeset as code listings using the [[lstlisting]] environment. All necessary information to typeset the code chunk is passed as options to the environment. We already set a label for the listing that uses the unique number of the code chunk.
+<<Begin listing environment>>=
+format("\\begin{lstlisting}[label=lst:~d", [N])
+@
+The spacing between lines of code is decreased.
+<<Adjust vertical spacing of the listing>>=
+format(",lineskip=-1.2pt")
+@
+To make listings visually more distinct on a page, especially listings with very few lines of code, all listings are typeset with a line above and a line below the code.
 <<Draw lines above and below the listing>>=
-format(",frame=Tb,framesep=2pt,rulesep=1.5pt")
+format(",frameshape={yny}{n}{n}{yny}")
 @
 
-\label{text:chunkrefs}
-Since code chunks are typeset in a floating environment, they will sometimes be on a later page than the text explaining them. At the point where a chunk is defined, a reference to the listing is inserted. It references the number, as numbered by the [[listings]] package, and the page.
-<<Insert reference to the listing>>=
-format(" (Listing~~\\ref{lst:~d} on page~~\\pageref{lst:~d})~n", [N, N])
-@ The label for the listing is set using the unique chunk number for that code chunk.
-<<Set the listing's label>>=
-format(",label=lst:~d", [N])
-@
-
-The last option that is necessary is the escape character, in case there are uses in the environment. Emitting this option and closing the list of options has to be delayed until an appropriate escape character has been determined. This is done by the predicate that iterates over the code and transforms it, [[transform_code/5]].
+The last option that is necessary is the escape character, in case there are uses in the environment. Emitting this option and closing the list of options has to be delayed until an appropriate escape character has been determined. This is done by the predicate that iterates over the code and transforms it, [[transform_code/5]]. The predicate [[transform_code/5]] is seeded with the set of characters ocurring on
 <<Code chunk to \LaTeX{}>>=
 transform_code_chunk(N, Name, Cont-Chunk) :-
-    <<Insert reference to the listing>>,
-    <<Begin floating listing environment>>,
-    <<Set listing caption>>,
+    <<Begin listing environment>>,
     <<Adjust vertical spacing of the listing>>,
     <<Draw lines above and below the listing>>,
-    <<Set the listing's label>>,
-    transform_code(Chunk, [], [], no, _Esc).
+    <<Write code chunk name>>,
+    transform_code(Chunk, [Name_set], [[Esc], Name_str, [Esc]], Esc).
 @
 
-The predicate [[transform_code/5]] is seeded with empty lists for the accumulators for character code sets and code lines. The fourth argument is a switch, either [[yes]] or [[no]], which says whether there were any uses in the code chunk. When first argument is the empty list, the lines of code making up the code chunk have been all transformed and the chunk can be emitted.
+When first argument is the empty list, the lines of code making up the code chunk have been all transformed and the chunk can be emitted.
+Now, the appropriate escapes are determined. At this point, emitting the chunk is ``finalized'': the escape character option of the [[lstlisting]] environment is set (if there were any uses), the typeset code, with all escape characters now instantiated, is emitted, and the environment is ended.
 <<Code chunk to \LaTeX{}>>=
 :- discontiguous transform_code/5.
-transform_code([], Char_code_sets, Code, Has_uses, Esc) :-
-    emit_chunk(Has_uses, Char_code_sets, Code, Esc).
-<<Emit chunk>>
-@
-
-If there were uses in the chunk to be emitted, the appropriate escapes are determined. At this point, emitting the chunk is ``finalized'': the escape character option of the [[lstlisting]] environment is set (if there were any uses), the typeset code, with all escape characters now instantiated, is emitted, and the environment is ended.
-<<Emit chunk>>=
-emit_chunk(yes, Char_code_sets, Code, Esc) :-
+transform_code([], Char_code_sets, Code, Esc) :-
     sort(<<Use front>>, FS),
     sort(<<Use back>>, BS),
     determine_esc([FS,BS|Char_code_sets], Esc, EscEsc),
-    format(",escapechar=~s]", [EscEsc]),
-    finalize_chunk(Code).
-emit_chunk(no, _, Code, _) :-
-    format("]"),
-    finalize_chunk(Code).
-
-finalize_chunk(Code) :-
+    format(",escapechar=~s]~n", [EscEsc]),
     emit_code(Code),
     format("\\"), format("end{lstlisting}").
 @ The same [[emit_code/1]] is used as for writing quoted code.
@@ -649,20 +628,19 @@ finalize_chunk(Code) :-
 The other clauses to [[transform_code/5]] deal with text, new lines, and uses. New lines are replaced by the new line character.
 Text is not transformed in any way, just added to the accumulator for code. The set of codes on any text line or use line is calculated by sorting and added to the accumulator of character code sets.
 <<Code chunk to \LaTeX{}>>=
-transform_code([This|Rest], Char_code_sets, Code, Has_uses, Esc) :-
-    transform_code_1(This, Rest, Char_code_sets, Code, Has_uses, Esc).
+transform_code([This|Rest], Char_code_sets, Code, Esc) :-
+    transform_code_1(This, Rest, Char_code_sets, Code, Esc).
 
-transform_code_1(nl, Rest, Char_code_sets, Code, Has_uses, Esc) :-
-    transform_code(Rest, Char_code_sets, [`\n`|Code], Has_uses, Esc).
-transform_code_1(text(Text), Rest, Char_code_sets, Code, Has_uses, Esc) :-
+transform_code_1(nl, Rest, Char_code_sets, Code, Esc) :-
+    transform_code(Rest, Char_code_sets, [`\n`|Code], Esc).
+transform_code_1(text(Text), Rest, Char_code_sets, Code, Esc) :-
     sort(Text, Set),
-    transform_code(Rest, [Set|Char_code_sets], [Text|Code], Has_uses, Esc).
-transform_code_1(use(Use_name), Rest, Char_code_sets, Code, _, Esc) :-
+    transform_code(Rest, [Set|Char_code_sets], [Text|Code], Esc).
+transform_code_1(use(Use_name), Rest, Char_code_sets, Code, Esc) :-
     sort(Use_name, Set),
     transform_code(Rest,
         [Set|Char_code_sets],
         [[Esc], <<Use back>>, Use_name, <<Use front>>, [Esc]|Code],
-        yes,
         Esc
     ).
 @ Note that the front and back of the typeset use need to be added to the accumulator for typeset code in reverse order, since all code is in the accumulator in reverse order.
