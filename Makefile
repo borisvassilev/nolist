@@ -2,13 +2,15 @@ nolist.pdf : nolist.tex nolist.bib
 	latexmk -pdf -halt-on-error -bibtex nolist
 
 nolist.tex : nolist.nw nolist.pl
-	~/lib/markup nolist.nw | ~/lib/emptydefn | ./nolist.pl > nolist.tex
+	~/lib/markup nolist.nw \
+	    | ~/lib/emptydefn \
+	    | ./nolist.pl > nolist.tex
 	
 nolist.pl : nolist.nw
-	notangle -Rnolist.pl nolist.nw > nolist.pl
+	notangle -Rnolist.pl -filter emptydefn nolist.nw > nolist.pl
 	chmod u+x nolist.pl
-	notangle -Rsmnolist.pl nolist.nw > smnolist.pl
-	notangle -Rtrnolist.pl nolist.nw > trnolist.pl
+	notangle -Rsmnolist.pl -filter emptydefn nolist.nw > smnolist.pl
+	notangle -Rtrnolist.pl -filter emptydefn nolist.nw > trnolist.pl
 
 .PHONY : clean
 clean :
