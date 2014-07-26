@@ -4,6 +4,7 @@ nolist.pdf : nolist.tex nolist.bib
 nolist.tex : nolist.nw nolist.pl
 	~/lib/markup nolist.nw \
 	    | ~/lib/emptydefn \
+	    | ~/lib/noidx \
 	    | ./nolist.pl > nolist.tex
 	
 nolist.pl : nolist.nw
