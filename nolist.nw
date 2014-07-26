@@ -143,18 +143,18 @@ main :-
 <<Handling of custom error terms>>
 @
 
-Processing the pipeline begins by reading and parsing a line, and starting a state machine in which every line is a token. The initial state is \emph{out}, and the predicate that implements it is [[out/3]]. The third argument of [[out/3]] is a list of already seen code chunk names, at the beginning empty. It is used to provide visual hint in the definition of the code chunk of whether it is a new one (see~\pref{text:codetitle}). The module that provides both [[next_line/2]] and [[out/3]], [[smnolist]], is loaded.
+Processing the pipeline begins by reading and parsing a line, and starting a state machine in which every line is a token. The initial state is \emph{out}, and the predicate that implements it is [[out/2]]. The third argument of [[out/2]] is a list of already seen code chunk names, at the beginning empty. It is used to provide visual hint in the definition of the code chunk of whether it is a new one (see~\pref{text:codetitle}). The module that provides both [[next_line/2]] and [[out/2]], [[smnolist]], is loaded.
 <<Read pipeline and convert to documentation>>=
 use_module(smnolist),
 next_line(Keyword, Content),
-out(Keyword, Content, [])
+out(Keyword, Content)
 @
 
 The rest of the program contains the code for processing the input, transforming it to proper \LaTeX, writing it to output, and the DCGs for parsing the input lines. To make the program easier to debug and extend, we put input parsing in one module, and the transformation in another.
 
-The file defining the module [[smnolist]] exports the predicates that needs to be visible to the main program, [[out/3]] and [[next_line/2]]. It imports the module that does the transformation, [[trnolist]].
+The file defining the module [[smnolist]] exports the predicates that needs to be visible to the main program, [[out/2]] and [[next_line/2]]. It imports the module that does the transformation, [[trnolist]].
 <<smnolist.pl>>=
-:- module(smnolist, [out/3, next_line/2]).
+:- module(smnolist, [out/2, next_line/2]).
 
 :- use_module(trnolist).
 
@@ -307,10 +307,10 @@ next_line_1(Codes, Keyword, Content) :-
     !.
 @
 
-In the case that the contents of the line could not be parsed, an error is thrown. The beginning of the line (first 37 chars) is printed out in the error message.
+In the case that the contents of the line could not be parsed, an error is thrown. The beginning of the line (first 67 chars) is printed out in the error message.
 <<>>=
 next_line_1(Codes, _, _) :- /* could not parse line */
-    line_beginning(Codes, 37, Beginning),
+    line_beginning(Codes, 67, Beginning),
     throw(unrecognized_token(Beginning)).
 line_beginning([], _, []).
 line_beginning([X|Xs], N, [X|Ys]) :-
@@ -324,14 +324,14 @@ line_beginning([X|Xs], N, [X|Ys]) :-
 The term [[unrecognized_token/1]] is printed out as:
 <<Handling of custom error terms>>=
 prolog:message(unrecognized_token(T)) -->
-    [ "Unrecognized token on line: `~s'"-[T] ].
+    [ "Unrecognized token on line:", nl, "`~s'"-[T] ].
 @
 
 \subsection{State \emph{out}}
-The state \emph{out} is implemented by a single predicate, [[out/3]]. It takes the keyword of the last parsed line as the first argument, and the content as the second.
+The state \emph{out} is implemented by a single predicate, [[out/2]]. It takes the keyword of the last parsed line as the first argument, and the content as the second.
 The inputs to the state machine that are admitted in state emph{out} are end of input, a [[@begin]], [[@literal]] text, or any other ignored keyword.
 <<State out>>=
-:- discontiguous out/3.
+:- discontiguous out/2.
 <<Out: end of input>>
 <<Out: begin>>
 <<Out: literal>>
@@ -341,50 +341,50 @@ The inputs to the state machine that are admitted in state emph{out} are end of 
 
 The end of input terminates the state machine successfully.
 <<Out: end of input>>=
-out(eof, empty, _).
+out(eof, empty).
 @
 The keyword [[@begin]] triggers a transition to either a documentation or a code chunk.
 <<Out: begin>>=
-out(begin, kind_n(Kind, N), Seen) :-
-    transition_kind_n(Kind, N, Seen).
+out(begin, kind_n(Kind, N)) :-
+    transition_kind_n(Kind, N).
 
-transition_kind_n(docs, N, Seen) :-
-    docs(N, Seen).
-transition_kind_n(code, N, Seen) :-
-    code(N, Seen).
+transition_kind_n(docs, N) :-
+    docs(N).
+transition_kind_n(code, N) :-
+    code(N).
 @
 We define a code snipped that reads the next line and parses it, staying in state emph{out}.
 <<Out: continue>>=
-next_line(Keyword, Content), out(Keyword, Content, Seen)
+next_line(Keyword, Content), out(Keyword, Content)
 @
 The Master Hacker keyword [[@literal]], when encountered in emph{out}, is treated by immediately writing the contents of the line to standard output, staying in emph{out}.
 <<Out: literal>>=
-out(literal, Text, Seen) :-
+out(literal, Text) :-
     format("~s", [Text]), <<Out: continue>>.
 @
 
 The tagging and wrapper keywords are ignored at the moment. Since at least one of the standard filters, [[noidx]], inserts new lines ([[@nl]]) in the pipeline representation \emph{outside} of any chunk, these are ignored as well.
 <<Out: ignored keywords>>=
-out(nl, _, Seen)        :- <<Out: continue>>.
-out(file, _, Seen)      :- <<Out: continue>>.
-out(line, _, Seen)      :- <<Out: continue>>.
-out(language, _, Seen)  :- <<Out: continue>>.
-out(index, _, Seen)     :- <<Out: continue>>.
-out(xref, _, Seen)      :- <<Out: continue>>.
-out(header, _, Seen)    :- <<Out: continue>>.
-out(trailer, _, Seen)   :- <<Out: continue>>.
+out(nl, _)        :- <<Out: continue>>.
+out(file, _)      :- <<Out: continue>>.
+out(line, _)      :- <<Out: continue>>.
+out(language, _)  :- <<Out: continue>>.
+out(index, _)     :- <<Out: continue>>.
+out(xref, _)      :- <<Out: continue>>.
+out(header, _)    :- <<Out: continue>>.
+out(trailer, _)   :- <<Out: continue>>.
 @
 
 Some of the tokens in the pipeline representation should not occur while in \emph{out}. All of them cause a [[bad_keyword]] error to be thrown.
 No structural keyword appart from [[@begin]] is allowed in \emph{out}. Encountering [[@fatal]] causes the whole program to terminate. 
 <<Out: invalid token>>=
-out(fatal, _, _)    :- throw(bad_keyword(fatal, out)).
-out(end, _, _)      :- throw(bad_keyword(end, out)).
-out(text, _, _)     :- throw(bad_keyword(text, out)).
-out(defn, _, _)     :- throw(bad_keyword(defn, out)).
-out(use, _, _)      :- throw(bad_keyword(use, out)).
-out(quote, _, _)    :- throw(bad_keyword(quote, out)).
-out(endquote, _, _) :- throw(bad_keyword(endquote, out)).
+out(fatal, _)    :- throw(bad_keyword(fatal, out)).
+out(end, _)      :- throw(bad_keyword(end, out)).
+out(text, _)     :- throw(bad_keyword(text, out)).
+out(defn, _)     :- throw(bad_keyword(defn, out)).
+out(use, _)      :- throw(bad_keyword(use, out)).
+out(quote, _)    :- throw(bad_keyword(quote, out)).
+out(endquote, _) :- throw(bad_keyword(endquote, out)).
 @
 
 The rule that formats the [[bad_keyword/2]] term is defined as follows:
@@ -397,10 +397,10 @@ prolog:message(bad_keyword(Keyword, State)) -->
 For a documentation chunk, [[nolist]] writes all lines to standard output before reading the next input line and returning to state emph{out}.
 The predicate [[docs_chunk/2]] processes all input up to the end of the current documentation chunk.
 <<State docs>>=
-docs(N, Seen) :-
+docs(N) :-
     docs_chunk(N),
     next_line(Keyword, Content),
-    out(Keyword, Content, Seen).
+    out(Keyword, Content).
 docs_chunk(N) :- <<Docs: continue>>.
 <<Read documentation lines>>
 @
@@ -464,17 +464,11 @@ docs_lines(xref, _, N)  :- <<Docs: continue>>.
 \subsection{State \emph{code}: reading a code chunk}
 The transformation of a code chunk to properly typeset \LaTeX\ documentation is a bit more involved than that of a documentation chunk, and output has to be delayed until the whole code chunk has been read. When a code chunk is processed, there is additional information that needs to be extracted from the pipeline representation and passed to [[transform_code_chunk/3]]: the name of the code chunk, along with the ``uses'' of other code chunks inside it, and whether this chunk name has been seen before. We check explicitly that we did find a [[@defn]] inside the code chunk and got a name for the chunk. Quoted code, on the other hand, does not have a number, and should not have a name.
 <<State code>>=
-code(N, Seen) :-
+code(N) :-
     code_chunk(N, Name, Chunk),
-    (   memberchk(Name, Seen)
-    ->  Seen_new = Seen,
-        Continued_chunk = yes-Chunk
-    ;   Seen_new = [Name|Seen],
-        Continued_chunk = no-Chunk
-    ),
-    transform_code_chunk(N, Name, Continued_chunk),
+    transform_code_chunk(N, Name, Chunk),
     next_line(Keyword, Content),
-    out(Keyword, Content, Seen_new).
+    out(Keyword, Content).
 code_chunk(N, Name, Chunk) :- <<Code: continue>>.
 <<Read code lines>>
 @
@@ -559,7 +553,7 @@ Quoted code and code chunks are treated differently. Quoted code is typeset inli
 `} $\\rangle$}`
 @
 
-For both cases, [[listings]] provides a mechanism for typesetting code verbatim, which involves the use of escape characters. An escape character can only be a character that is not used in the code that we are currently typesetting. In this program, an appropriate escape character is chosen by finding a character that is not in the set of characters in the current code chunk. The predicate [[determine_esc/2]] takes the list of character code sets, finds their union, and then checks whether there is a ``graph'' character code that does not appear inside the union.
+For both cases, [[listings]] provides a mechanism for typesetting code verbatim, which involves the use of escape characters. An escape character can only be a character that is not used in the code that we are currently typesetting. In this program, an appropriate escape character is chosen by finding a character that is not in the set of characters in the current code chunk. The predicate [[determine_esc/2]] takes the list of character code sets, finds their union, and then checks whether there is a ``graph'' character code that does not appear inside the union. The list of sets that this predicate takes as its first argument are collected while iterating over code during transformation.
 <<Determine appropriate escape character>>=
 determine_esc(Char_code_sets, Esc, EscEsc) :-
     ord_union(Char_code_sets, Used_char_codes),
@@ -573,7 +567,13 @@ determine_esc(Char_code_sets, Esc, EscEsc) :-
 determine_esc(_, _, _) :-
     throw(cannot_escape).
 <<Special \LaTeX\ characters>>
-@ The list of sets that this predicate takes as its first argument are collected while iterating over code during transformation.
+@ 
+
+The rule that formats the [[cannot_escape]] error is defined as follows:
+<<Handling of custom error terms>>=
+prolog:message(cannot_escape) -->
+    [ "Congratulations! You have used all the characters." ].
+@
 
 If the escape character we chose to use is a special character for \LaTeX, we need to escape it at its first use in the respective [[listings]] command. For [[\lstinline]], for example, we need to write ``[[\lstinline[]\#foo#]]'' if we use the percent sign as an escape character. If setting the escape character as an option to the [[lstlisting]] environment, the option should be set by ``[[escapechar=\#]]''.
 <<Special \LaTeX\ characters>>=
@@ -640,15 +640,9 @@ quoted_to_inline_1(text(Text), Rest, Code_char_sets, Inline) :-
 \label{text:codetitle}
 The chunk name is typeset at the top of the listing. Unlike uses, chunk definitions do not have the name in italics. When a chunk is a continuation of a previously defined chunk, the name is followed by ``$+\!\equiv$'', instead of just ``$\equiv$''.
 <<Write code chunk name>>=
-continued(Cont, Cont_str),
-Name_list = [
-    `{\\rmfamily$\\langle$ `, Name, ` $\\rangle `, Cont_str, `\\equiv$}`
-],
+Name_list = [ `{\\rmfamily$\\langle$ `, Name, ` $\\rangle\\equiv$}` ],
 append(Name_list, Name_str),
 sort(Name_str, Name_set)
-<<Code chunk to \LaTeX>>=
-continued(yes, `+\\!`).
-continued(no, ``).
 @
 Code chunks are typeset as code listings using the [[lstlisting]] environment. All necessary information to typeset the code chunk is passed as options to the environment. We already set a label for the listing that uses the unique number of the code chunk.
 <<Begin listing environment>>=
@@ -661,7 +655,7 @@ format(",lineskip=-1pt")
 
 The last option that is necessary is the escape character, in case there are uses in the environment. Emitting this option and closing the list of options has to be delayed until an appropriate escape character has been determined. This is done by the predicate that iterates over the code and transforms it, [[transform_code/5]], which takes the code chunk as its first argument. The second argument is an accumulator for the sets of characters ocurring on each line. It is seeded with the set of characters ocurring in the typeset name of the code chunk. The third argument is an accumulator for the typeset code of the code chunk, and it is seeded with the escaped code chunk name. The last argument is the escape character itself.
 <<Code chunk to \LaTeX>>=
-transform_code_chunk(N, Name, Cont-Chunk) :-
+transform_code_chunk(N, Name, Chunk) :-
     <<Begin listing environment>>,
     <<Adjust vertical spacing of the listing>>,
     <<Write code chunk name>>,
