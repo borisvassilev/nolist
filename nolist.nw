@@ -189,9 +189,10 @@ Since the program is run as a non-interactive script, there is little informatio
 @
 
 \section{Parsing input}
-The input to [[nolist]] is the output of the [[noweb]]'s front-end, [[markup]]. The author of [[noweb]] calls it the ``pipeline representation'' \cit{Ramsey1992}. In this representation, every line begins with a keyword. For [[nolist]], only the \emph{structural} keywords are important (for now). Anyway, to offer some degree of validation, every known keyword is recognized, even if the contents of that line are ignored by [[nolist]]. If the line has relevant content, that content is parsed and returned as well. All lines are processed with the DCG [[keyword_content//2]]. It returns an atom for each recognized keyword, and the content of the line. The content could be a list of character codes if the line contains text, a compound term with a descriptive functor name, or, for lines that don't have content or lines for which the content is ignored, the atom [[empty]].
+The input to [[nolist]] is the output of the [[noweb]]'s front-end, [[markup]]. The author of [[noweb]] calls it the ``pipeline representation'' \cit{Ramsey1992}. In this representation, every line begins with a keyword. For [[nolist]], only the structural keywords are important (for now). To offer some degree of validation, every known keyword is recognized, even if the contents of that line are ignored by [[nolist]] (for now). If the line has relevant content, that content is parsed and returned as well. All lines are read from input as character code lists, and are parsed using DCG rules. The DCG [[keyword//1]] converts one of the recognized keywords at the beginning of the line into an atom and returns it in its argument. The predicate [[line_rest_content/3]] takes this atom as its first argument and based on it parses, if necessary, the rest of the line with the appropriate helper DCG. The content could be a list of character codes if the line contains text, a compound term with a descriptive functor name, or, for lines that don't have content or lines for which the content is ignored, the atom [[empty]].
 <<Pipeline representation line parsing>>=
-:- discontiguous keyword_content//2.
+:- discontiguous keyword//1.
+:- discontiguous line_rest_content/3.
 <<Keywords: begin and end chunk>>
 <<Keywords: text>>
 <<Keywords: define or use a name>>
@@ -204,20 +205,24 @@ The input to [[nolist]] is the output of the [[noweb]]'s front-end, [[markup]]. 
 \subsection{Structural keywords}
 Code and documentation chunks are delimited by a matching pair of [[@begin]] and [[@end]]. Both keywords specify the kind of chunk (documentation or code), and its number. Chunk numbers are monotonically increasing, and hence unique.
 <<Keywords: begin and end chunk>>=
-keyword_content(begin, kind_n(Kind, N)) -->
-    `@begin`, space_char, kind_n(Kind, N).
-keyword_content(end, kind_n(Kind, N)) -->
-    `@end`, space_char, kind_n(Kind, N).
+keyword(begin) --> `begin`.
+line_rest_content(begin, Rest, kind_n(Kind, N)) :-
+    phrase(kind_n(Kind, N), Rest).
+
+keyword(end) --> `end`.
+line_rest_content(end, Rest, kind_n(Kind, N)) :-
+    phrase(kind_n(Kind, N), Rest).
+
+kind_n(docs, N) -->
+    space_char, `docs`, space_char, chunk_n(N).
+kind_n(code, N) -->
+    space_char, `code`, space_char, chunk_n(N).
 <<Helper DCGs: space, chunk kind and number>>
 @
-The following helper DCGs are used: [[space_char//0]] that parses a single space character (either a space or a tab); [[kind_n//2]] that parses the kind to an atom (either emph{docs} or emph{code}), and the number, with the help of [[chunk_n//1]], which converts the number to an integer.
+The following helper DCGs are used: [[space_char//0]] that parses a single space character (either a space or a tab); [[kind_n//2]] that parses the kind to an atom (either [[docs]] or [[code]]), and the number, with the help of [[chunk_n//1]], which converts the number to an integer.
 <<Helper DCGs: space, chunk kind and number>>=
 space_char -->
     [S], { code_type(S, space) }.
-kind_n(docs, N) -->
-    `docs`, space_char, chunk_n(N).
-kind_n(code, N) -->
-    `code`, space_char, chunk_n(N).
 chunk_n(N) -->
     to_eol(N_codes),
     {   number_codes(N, N_codes),
@@ -227,10 +232,12 @@ chunk_n(N) -->
 
 Two keywords, [[@text]] and [[@nl]], contain all text and line structure of a chunk. All text is kept as is. The treatment of new lines is left for the predicates that process documentation and code chunks.
 <<Keywords: text>>=
-keyword_content(text, Text) -->
-    `@text`, optional_text(Text).
-keyword_content(nl, empty) -->
-    `@nl`.
+keyword(text) --> `text`.
+line_rest_content(text, Rest, Text) :-
+    phrase(optional_text(Text), Rest).
+
+keyword(nl) --> `nl`.
+line_rest_content(nl, [], empty).
 <<Helper DCGs: optional text to end of line>>
 @
 Two more helper DCGs are used: [[optional_text//1]] that reads and returns all remaining text, or an empty list if there was nothing more on the line, and [[to_eol//1]] that simply puts all character codes to the end of the line into a list.
@@ -248,41 +255,63 @@ Actually, [[optional_text//1]] will return an empty list if [[@text]] is followe
 
 The text string that appears between the ``[[@<<]]'' and ``[[@>>=]]'' at the beginning of each code chunk definition in the [[noweb]] source file are the code chunk \emph{names}. In the pipeline representation, a code chunk's name is defined on a [[@defn]] line. A [[@use]] line inside a code chunk means that the named code chunk is used at that exact position in the current code chunk.
 <<Keywords: define or use a name>>=
-keyword_content(defn, Name) -->
-    `@defn`, space_char, to_eol(Name).
-keyword_content(use, Name) -->
-    `@use`, space_char, to_eol(Name).
+keyword(defn) --> `defn`.
+line_rest_content(defn, Rest, Name) :-
+    phrase(name(Name), Rest).
+
+keyword(use) --> `use`.
+line_rest_content(use, Rest, Name) :-
+    phrase(name(Name), Rest).
+
+name(Name) -->
+    space_char, to_eol(Name).
 @
 
 Inside a documentation chunk, quoted code can appear. In the [[noweb]] source, it is opened and closed by double opening and double closing brackets: ``[[[[]]'' and ``[[]]]]''. In the pipeline representaion it is delimited by [[@quote]] and [[@endquote]], and [[nolist]] treats it as an unnamed code chunk (see~\ref{text:quotedcode} on page~\pageref{text:quotedcode}).
 <<Keywords: begin and end quoted code>>=
-keyword_content(quote, empty) -->
-    `@quote`.
-keyword_content(endquote, empty) -->
-    `@endquote`.
+keyword(quote) --> `quote`.
+line_rest_content(quote, [], empty).
+
+keyword(endquote) --> `endquote`.
+line_rest_content(endquote, [], empty).
 @
 
 \subsection{Pipeline errors and dirty hacks}
 There are two special keywords. The ``lying, stealing, cheating'' keyword [[@literal]] \pagecit{Ramsey1994}{13} denotes arbitrary text that is to be copied to the output. Although it is deprecated, it will be ``retained forever in the name of Backward Compatibility'' so [[nolist]] deals with it.
 The other special keyword is [[@fatal]], which is used when an error has occured while processing the [[noweb]] source (or if an error occurs while a filter is processing the pipeline representation). Since the front end or any filter should write an error message to standard error, all that the backend needs to do is terminate with an error status.
 <<Keywords: errors and hacks>>=
-keyword_content(literal, Text) -->
-    `@literal`, optional_text(Text).
-keyword_content(fatal, empty) -->
-    `@fatal`, to_eol(_).
+keyword(literal) --> `literal`.
+line_rest_content(literal, Rest, Literal) :-
+    phrase(optional_text(Literal), Rest).
+
+keyword(fatal) --> `fatal`.
+line_rest_content(fatal, _, empty).
 @
 
 \subsection{Tagging and wrapper keywords}
 We have now dealt with all relevant keywords. All other keywords in the pipeline representation are at current parsed, as a form of week input validation, but any content is ignored and the lines themselves are silently ignored by the back end. This should probably change, and at least the [[@language]] keyword should be used. This will allow the backend to take full advantage of the [[listings]] package's main strength: language specific code highlighting.
 <<Keywords: tagging keywords>>=
-keyword_content(file, empty)        --> `@file`, to_eol(_).
-keyword_content(line, empty)        --> `@line`, to_eol(_).
-keyword_content(language, empty)    --> `@language`, to_eol(_).
-keyword_content(index, empty)       --> `@index`, to_eol(_).
-keyword_content(xref, empty)        --> `@xref`, to_eol(_).
+keyword(file) --> `file`.
+line_rest_content(file, _, empty).
+
+keyword(line) --> `line`.
+line_rest_content(line, _, empty).
+
+keyword(language) --> `language`.
+line_rest_content(language, _, empty).
+
+keyword(index) --> `index`.
+line_rest_content(index, _, empty).
+
+keyword(xref) --> `xref`.
+line_rest_content(xref, _, empty).
+@
 <<Keywords: wrapper keywords>>=
-keyword_content(header, empty)      --> `@header`, to_eol(_).
-keyword_content(trailer, empty)     --> `@trailer`, to_eol(_).
+keyword(header) --> `header`.
+line_rest_content(header, _, empty).
+
+keyword(trailer) --> `trailer`.
+line_rest_content(trailer, _, empty).
 @
 
 \section{State machine}
@@ -302,8 +331,9 @@ next_line(Keyword, Content) :-
     read_line_to_codes(user_input, Codes),
     next_line_1(Codes, Keyword, Content).
 next_line_1(end_of_file, eof, empty) :- !.
-next_line_1(Codes, Keyword, Content) :-
-    phrase(keyword_content(Keyword, Content), Codes),
+next_line_1([0'@|Codes], Keyword, Content) :- /* remove the @ */
+    phrase(keyword(Keyword), Codes, Rest),
+    line_rest_content(Keyword, Rest, Content),
     !.
 @
 
