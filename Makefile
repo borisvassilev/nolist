@@ -6,6 +6,12 @@ nolist.tex : nolist.nw nolist.pl
 	    | ~/lib/emptydefn \
 	    | ~/lib/noidx \
 	    | ./nolist.pl > nolist.tex
+
+nolist.pipeline : nolist.nw nolist.pl
+	~/lib/markup nolist.nw \
+	    | ~/lib/emptydefn \
+	    | ~/lib/noidx > nolist.pipeline
+
 	
 nolist.pl : nolist.nw
 	notangle -Rnolist.pl -filter emptydefn nolist.nw > nolist.pl
@@ -19,3 +25,4 @@ clean :
 	-rm nolist.bbl
 	-rm nolist.run.xml nolist.tex
 	-rm trnolist.pl smnolist.pl nolist.pl
+	-rm nolist.pipeline
